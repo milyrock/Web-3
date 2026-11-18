@@ -1,0 +1,28 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Услуги | developer.dev</title>
+  <link rel="icon" href="assets/figma/logo.svg" type="image/svg+xml">
+  <link rel="stylesheet" href="fonts.css">
+  <link rel="stylesheet" href="global.css">
+  <link rel="stylesheet" href="styles.css">
+  <link rel="stylesheet" href="app.css">
+  <script src="script.js" defer></script>
+</head>
+<body><div class="site">
+  <main class="app-page" id="main">
+    <h1>Услуги для вашего проекта</h1>
+    <p class="app-note">Разработка, дизайн и продвижение от developer.dev. Цены указаны в рублях.</p>
+    <form class="app-toolbar" id="search-form" role="search">
+      <label>Поиск<input type="search" name="q" placeholder="Название или описание" maxlength="100"></label>
+      <label>Категория<select name="category" id="category-filter"><option value="">Все категории</option></select></label>
+      <label>Сортировка<select name="sort"><option value="newest">Сначала новые</option><option value="name">По названию</option><option value="price_asc">Сначала дешевле</option><option value="price_desc">Сначала дороже</option></select></label>
+      <button class="button" type="submit">Найти</button>
+    </form>
+    <p class="app-status" id="page-status" role="status"></p>
+    <div class="app-grid" id="products"></div>
+  </main>
+</div></body>
+</html>

@@ -1,0 +1,6 @@
+.git
+.env
+node_modules
+test-results
+data
+web-3
