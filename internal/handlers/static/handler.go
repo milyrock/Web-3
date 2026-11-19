@@ -19,7 +19,8 @@ func New(directory string) http.HandlerFunc {
 		if name == "/" {
 			name = "/index.html"
 		}
-		switch strings.ToLower(filepath.Ext(name)) {
+		extension := strings.ToLower(filepath.Ext(name))
+		switch extension {
 		case ".html", ".css", ".js", ".svg", ".jpg", ".jpeg", ".png", ".webp", ".woff", ".woff2", ".ttf", ".txt", ".ico":
 		default:
 			http.NotFound(w, r)
@@ -29,6 +30,10 @@ func New(directory string) http.HandlerFunc {
 		if err != nil || !info.Mode().IsRegular() {
 			http.NotFound(w, r)
 			return
+		}
+		switch extension {
+		case ".html", ".css", ".js":
+			w.Header().Set("Cache-Control", "no-store")
 		}
 		files.ServeHTTP(w, r)
 	}

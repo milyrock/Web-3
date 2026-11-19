@@ -2,6 +2,17 @@ package response
 
 import "developer.dev/web-3/internal/model"
 
+type User struct {
+	ID    int64  `json:"id"`
+	Name  string `json:"name"`
+	Email string `json:"email"`
+	Role  string `json:"role"`
+}
+
+func NewUser(user model.User) User {
+	return User{ID: user.ID, Name: user.Name, Email: user.Email, Role: user.Role}
+}
+
 type Category struct {
 	ID    int64  `json:"id"`
 	Name  string `json:"name"`
@@ -32,6 +43,7 @@ type Product struct {
 	Price            int64      `json:"price"`
 	Image            string     `json:"image"`
 	Available        bool       `json:"available"`
+	Stock            int        `json:"stock"`
 	MetaKeywords     string     `json:"meta_keywords"`
 	MetaDescription  string     `json:"meta_description"`
 	MetaTitle        string     `json:"meta_title"`
@@ -55,7 +67,7 @@ func NewProduct(product model.Product) Product {
 	out := Product{
 		ID: product.ID, ManufacturerID: product.ManufacturerID, CategoryID: product.CategoryID,
 		Name: product.Name, Alias: product.Alias, ShortDescription: product.ShortDescription,
-		Description: product.Description, Price: product.Price, Image: product.Image, Available: product.Available,
+		Description: product.Description, Price: product.Price, Image: product.Image, Available: product.Available, Stock: product.Stock,
 		MetaKeywords: product.MetaKeywords, MetaDescription: product.MetaDescription,
 		MetaTitle: product.MetaTitle, Category: product.Category,
 	}

@@ -30,6 +30,14 @@ func Error(w http.ResponseWriter, err error) {
 		status, message, field = http.StatusUnprocessableEntity, validation.Message, validation.Field
 	case errors.Is(err, model.ErrNotFound):
 		status, message = http.StatusNotFound, err.Error()
+	case errors.Is(err, model.ErrUnauthorized), errors.Is(err, model.ErrCredentials):
+		status, message = http.StatusUnauthorized, err.Error()
+	case errors.Is(err, model.ErrForbidden):
+		status, message = http.StatusForbidden, err.Error()
+	case errors.Is(err, model.ErrEmailExists):
+		status, message, field = http.StatusConflict, err.Error(), "email"
+	case errors.Is(err, model.ErrInsufficientStock):
+		status, message = http.StatusConflict, err.Error()
 	default:
 		slog.Error("request failed", "error", err)
 	}

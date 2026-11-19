@@ -1,0 +1,28 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Вход | developer.dev</title>
+  <link rel="icon" href="assets/figma/logo.svg" type="image/svg+xml">
+  <link rel="stylesheet" href="fonts.css">
+  <link rel="stylesheet" href="global.css">
+  <link rel="stylesheet" href="styles.css">
+  <link rel="stylesheet" href="app.css?v=2">
+  <script src="script.js?v=2" defer></script>
+</head>
+<body><div class="site">
+  <main class="app-page" id="main">
+    <h1>Вход</h1>
+    <p class="app-note">Пользователь и администратор входят через одну форму.</p>
+    <form class="app-form" data-auth="login" method="post" action="/api/auth/login">
+      <label>Email<input name="email" type="email" autocomplete="username" maxlength="254" required></label>
+      <label>Пароль<input name="password" type="password" autocomplete="current-password" maxlength="128" required></label>
+      <button class="button" type="submit">Войти</button>
+      <p class="app-status" data-status role="status"></p>
+    </form>
+    <p class="app-note">Нет аккаунта? <a href="register.html">Зарегистрироваться</a></p>
+    <p class="app-status" id="page-status" role="status"></p>
+  </main>
+</div></body>
+</html>

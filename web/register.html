@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Регистрация | developer.dev</title>
+  <link rel="icon" href="assets/figma/logo.svg" type="image/svg+xml">
+  <link rel="stylesheet" href="fonts.css">
+  <link rel="stylesheet" href="global.css">
+  <link rel="stylesheet" href="styles.css">
+  <link rel="stylesheet" href="app.css?v=2">
+  <script src="script.js?v=2" defer></script>
+</head>
+<body><div class="site">
+  <main class="app-page" id="main">
+    <h1>Регистрация</h1>
+    <p class="app-note">Создайте аккаунт пользователя. Для учебного приложения используйте тестовые данные.</p>
+    <form class="app-form" data-auth="register" method="post" action="/api/auth/register">
+      <label>Имя<input name="name" autocomplete="name" minlength="2" maxlength="100" required></label>
+      <label>Email<input name="email" type="email" autocomplete="username" maxlength="254" required></label>
+      <label>Пароль<input name="password" type="password" autocomplete="new-password" minlength="8" maxlength="128" required></label>
+      <label>Повторите пароль<input name="password_confirmation" type="password" autocomplete="new-password" minlength="8" maxlength="128" required></label>
+      <p class="app-note">От 8 до 128 символов. <a href="privacy.html" target="_blank" rel="noopener">Как хранятся данные</a></p>
+      <button class="button" type="submit">Зарегистрироваться</button>
+      <p class="app-status" data-status role="status"></p>
+    </form>
+    <p class="app-note">Есть аккаунт? <a href="account.html">Войти в личный кабинет</a></p>
+    <p class="app-status" id="page-status" role="status"></p>
+  </main>
+</div></body>
+</html>

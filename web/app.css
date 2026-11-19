@@ -14,6 +14,10 @@
 .app-card__actions .button { min-width: 0; padding-inline: 10px; }
 .app-toolbar { display: flex; flex-wrap: wrap; align-items: end; gap: 16px; margin-bottom: 32px; }
 .app-toolbar label { display: grid; gap: 8px; font-size: 15px; line-height: 1.6; }
+.app-form { display: grid; gap: 18px; max-width: 540px; margin-bottom: 24px; }
+.app-form label { display: grid; gap: 8px; font-size: 15px; line-height: 1.6; }
+.app-form input { width: 100%; padding: 12px; border: 1px solid #aaa; color: #333; background: white; font: inherit; }
+.app-form button { justify-self: start; }
 .app-toolbar input, .app-toolbar select, .app-table input { width: 100%; padding: 12px; border: 1px solid #aaa; border-radius: 0; color: #333; background: white; font: inherit; }
 .app-toolbar input, .app-toolbar select, .app-toolbar > .button { height: 48px; min-height: 48px; }
 .app-check { display: flex; align-items: start; gap: 12px; line-height: 1.6; }

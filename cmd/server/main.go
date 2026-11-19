@@ -39,6 +39,11 @@ func run(logger *slog.Logger) error {
 	}
 	defer repo.Close()
 	service := usecase.New(repo)
+	if cfg.AdminPassword != "" {
+		if err := service.EnsureAdmin(startup, cfg.AdminEmail, cfg.AdminPassword); err != nil {
+			return err
+		}
+	}
 	server := &http.Server{
 		Addr: cfg.Addr, Handler: handlers.New(service, cfg),
 		ReadHeaderTimeout: 5 * time.Second, ReadTimeout: 15 * time.Second,

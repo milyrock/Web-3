@@ -72,5 +72,29 @@ func (r *Repository) init(ctx context.Context) error {
 			return err
 		}
 	}
+	if version < 3 {
+		if _, err := tx.ExecContext(ctx, `CREATE TABLE auth_users (
+			id BIGINT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
+			name TEXT NOT NULL CHECK(char_length(trim(name)) BETWEEN 2 AND 100),
+			email TEXT NOT NULL UNIQUE CHECK(email=lower(email)),
+			password_hash TEXT NOT NULL,
+			role TEXT NOT NULL DEFAULT 'user' CHECK(role IN ('user','admin'))
+		);
+		CREATE TABLE auth_sessions (
+			token_hash TEXT PRIMARY KEY,
+			user_id BIGINT NOT NULL REFERENCES auth_users(id) ON DELETE CASCADE,
+			expires_at TIMESTAMPTZ NOT NULL
+		);
+		CREATE INDEX auth_sessions_expiry ON auth_sessions(expires_at);
+		INSERT INTO schema_migrations(version) VALUES(3)`); err != nil {
+			return err
+		}
+	}
+	if version < 4 {
+		if _, err := tx.ExecContext(ctx, `ALTER TABLE products ADD COLUMN stock INTEGER NOT NULL DEFAULT 10 CHECK(stock >= 0);
+			INSERT INTO schema_migrations(version) VALUES(4)`); err != nil {
+			return err
+		}
+	}
 	return tx.Commit()
 }

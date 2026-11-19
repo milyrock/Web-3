@@ -4,6 +4,8 @@ services:
     environment:
       ADDR: 0.0.0.0:8080
       DATABASE_URL: postgres://developer:developer@db:5432/developer?sslmode=disable
+      ADMIN_EMAIL: ${ADMIN_EMAIL:-admin@developer.local}
+      ADMIN_PASSWORD: ${ADMIN_PASSWORD:-}
     ports:
       - "127.0.0.1:8080:8080"
     depends_on:

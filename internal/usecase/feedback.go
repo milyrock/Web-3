@@ -33,3 +33,14 @@ func (s *Service) CreateFeedback(ctx context.Context, feedback model.Feedback, c
 	}
 	return s.repo.CreateFeedback(ctx, feedback)
 }
+
+func (s *Service) Feedback(ctx context.Context, token string) ([]model.Feedback, error) {
+	user, err := s.CurrentUser(ctx, token)
+	if err != nil {
+		return nil, err
+	}
+	if user.Role != model.RoleAdmin {
+		return nil, model.ErrForbidden
+	}
+	return s.repo.Feedback(ctx)
+}

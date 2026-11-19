@@ -12,14 +12,14 @@ import (
 func scanProduct(row sq.RowScanner) (model.Product, error) {
 	var product model.Product
 	err := row.Scan(&product.ID, &product.ManufacturerID, &product.CategoryID, &product.Name, &product.Alias, &product.ShortDescription,
-		&product.Description, &product.Price, &product.Image, &product.Available, &product.MetaKeywords, &product.MetaDescription, &product.MetaTitle, &product.Category)
+		&product.Description, &product.Price, &product.Image, &product.Available, &product.Stock, &product.MetaKeywords, &product.MetaDescription, &product.MetaTitle, &product.Category)
 	return product, err
 }
 
 func (r *Repository) Products(ctx context.Context, pf model.ProductFilter) ([]model.Product, error) {
 	query := sq.Select(
 		"p.id", "p.manufacturer_id", "p.category_id", "p.name", "p.alias",
-		"p.short_description", "p.description", "p.price", "p.image", "p.available",
+		"p.short_description", "p.description", "p.price", "p.image", "p.available", "p.stock",
 		"p.meta_keywords", "p.meta_description", "p.meta_title", "c.name",
 	).From("products p").Join("categories c ON c.id = p.category_id").
 		Where(sq.Eq{"p.available": true}).PlaceholderFormat(sq.Dollar).RunWith(r.db)
@@ -64,7 +64,7 @@ func (r *Repository) Products(ctx context.Context, pf model.ProductFilter) ([]mo
 func (r *Repository) Product(ctx context.Context, productID int64) (model.Product, error) {
 	product, err := scanProduct(sq.Select(
 		"p.id", "p.manufacturer_id", "p.category_id", "p.name", "p.alias",
-		"p.short_description", "p.description", "p.price", "p.image", "p.available",
+		"p.short_description", "p.description", "p.price", "p.image", "p.available", "p.stock",
 		"p.meta_keywords", "p.meta_description", "p.meta_title", "c.name",
 	).From("products p").Join("categories c ON c.id = p.category_id").
 		Where(sq.Eq{"p.id": productID, "p.available": true}).

@@ -1,6 +1,6 @@
 const $ = (selector, root = document) => root.querySelector(selector)
 const $$ = (selector, root = document) => [...root.querySelectorAll(selector)]
-const state = { cart: { items: [], total: 0 }, busy: false }
+const state = { cart: { items: [], total: 0 }, user: null, busy: false }
 const money = value => new Intl.NumberFormat('ru-RU', { style: 'currency', currency: 'RUB', maximumFractionDigits: 0 }).format(value)
 const escapeHTML = value => String(value ?? '').replace(/[&<>"']/g, char => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[char])
 const cartKey = 'developer.cart.guest'
@@ -16,6 +16,7 @@ async function api(url, method = 'GET', body) {
   if (!response.ok) {
     const error = new Error(data.error || `Ошибка запроса (${response.status})`)
     error.field = data.field
+    error.status = response.status
     throw error
   }
   return data
@@ -87,18 +88,20 @@ async function loadCart() {
 async function saveCart(items) {
   cacheCart(items)
   await loadCart()
+  status($('#purchase-status'))
   if ($('#cart-content')) renderCart()
 }
 
-async function addToCart(id) {
+async function addToCart(id, stock) {
   const items = compactCart()
   const existing = items.find(item => item.product_id === id)
   if (existing?.quantity >= maxCartQuantity) throw new Error(`Можно добавить не более ${maxCartQuantity} единиц одной услуги`)
+  if ((existing?.quantity || 0) >= stock) throw new Error(`В наличии только ${stock} единиц`)
   if (!existing && items.length >= 50) throw new Error('Достигнут лимит корзины')
   if (existing) existing.quantity++
   else items.push({ product_id: id, quantity: 1 })
   await saveCart(items)
-  toast('Услуга добавлена в корзину')
+  toast('Услуга добавлена в корзину в личном кабинете')
 }
 
 function renderNavigation() {
@@ -120,7 +123,7 @@ function renderNavigation() {
   const menu = $('.menu__list')
   if (menu) {
     menu.insertAdjacentHTML('beforeend', `<li><a href="services.html">Services</a></li>
-      <li><a href="cart.html">Cart (<span id="cart-count">0</span>)</a></li>`)
+      <li><a id="account-link" href="account.html">Account</a></li>`)
     const currentPage = location.pathname.split('/').pop() || 'index.html'
     $$('a', menu).forEach(link => {
       if (link.getAttribute('href') === currentPage) link.setAttribute('aria-current', 'page')
@@ -133,17 +136,81 @@ function renderNavigation() {
   })
 }
 
+async function loadUser() {
+  try {
+    state.user = await api('/api/auth/me')
+  } catch (error) {
+    if (error.status !== 401) throw error
+    state.user = null
+  }
+}
+
+function bindAuthForms() {
+  $$('[data-auth]').forEach(form => {
+    form.addEventListener('submit', async event => {
+      event.preventDefault()
+      if (form.dataset.auth === 'register' && form.elements.password.value !== form.elements.password_confirmation.value) {
+        status($('[data-status]', form), 'Пароли не совпадают', true)
+        form.elements.password_confirmation.focus()
+        return
+      }
+      const button = $('button[type="submit"]', form)
+      if (button.disabled) return
+      button.disabled = true
+      status($('[data-status]', form), 'Проверка данных...')
+      try {
+        await api(`/api/auth/${form.dataset.auth}`, 'POST', Object.fromEntries(new FormData(form)))
+        location.assign('account.html')
+      } catch (error) {
+        status($('[data-status]', form), error.message, true)
+        form.elements[error.field]?.focus()
+        button.disabled = false
+      }
+    })
+  })
+}
+
+function renderAccount() {
+  $('#account-login').hidden = Boolean(state.user)
+  $('#account-profile').hidden = !state.user
+  if (!state.user) return
+  $('#account-content').innerHTML = `<p>Имя: ${escapeHTML(state.user.name)}</p>
+    <p>Email: ${escapeHTML(state.user.email)}</p>
+    <p>Роль: ${state.user.role === 'admin' ? 'Администратор' : 'Пользователь'}</p>
+    <div class="app-toolbar">
+      ${state.user.role === 'admin' ? '<a class="button" href="admin.html">Просмотреть заявки</a>' : ''}
+      <button class="button" id="logout" type="button">Выйти</button>
+    </div>`
+}
+
+async function renderAdmin() {
+  if (!state.user) {
+    location.replace('account.html')
+    return
+  }
+  if (state.user.role !== 'admin') {
+    status($('#page-status'), 'Доступ только для администратора', true)
+    return
+  }
+  const feedback = await api('/api/feedback')
+  $('#admin-feedback').innerHTML = feedback.length ? `<ul class="app-list">${feedback.map(item => `<li>
+    <h2>${escapeHTML(item.subject)}</h2><p>${escapeHTML(item.message)}</p>
+    <p class="app-muted">${escapeHTML(item.name)} · ${escapeHTML(item.email)} · ${new Date(item.created_at).toLocaleString('ru-RU')}${item.rating ? ` · ${item.rating}/5` : ''}</p>
+    </li>`).join('')}</ul>` : '<p>Обращений пока нет.</p>'
+}
+
 async function renderCatalog() {
   const params = new URLSearchParams(new FormData($('#search-form')))
   const products = await api(`/api/products?${params}`)
   $('#products').innerHTML = products.map(product => `<article class="app-card">
     <a href="product.html?id=${product.id}"><img src="${escapeHTML(product.image)}" alt="${escapeHTML(product.name)}" loading="lazy"><h2>${escapeHTML(product.name)}</h2></a>
     <p class="app-muted">${escapeHTML(product.category)}</p><p>${escapeHTML(product.short_description)}</p>
+    <p class="app-muted">В наличии: ${product.stock}</p>
     <div class="app-card__bottom">
       <p class="app-price">${money(product.price)}</p>
       <div class="app-card__actions">
         <a class="button" href="product.html?id=${product.id}">Подробнее</a>
-        <button class="button" type="button" data-add="${product.id}">В корзину</button>
+        <button class="button" type="button" data-add="${product.id}" data-stock="${product.stock}" ${product.stock > 0 ? '' : 'disabled'}>${product.stock > 0 ? 'В корзину' : 'Нет в наличии'}</button>
       </div>
     </div>
   </article>`).join('')
@@ -160,7 +227,8 @@ async function renderProduct() {
     <img src="${escapeHTML(product.image)}" alt="${escapeHTML(product.name)}">
     <div><h1>${escapeHTML(product.name)}</h1><p class="app-muted">${escapeHTML(product.category)}</p>
       <p>${escapeHTML(product.description)}</p><p class="app-price">${money(product.price)}</p>
-      <button type="button" class="button" data-add="${product.id}" ${product.available ? '' : 'disabled'}>${product.available ? 'В корзину' : 'Временно недоступна'}</button>
+      <p class="app-muted">В наличии: ${product.stock}</p>
+      <button type="button" class="button" data-add="${product.id}" data-stock="${product.stock}" ${product.stock > 0 ? '' : 'disabled'}>${product.stock > 0 ? 'В корзину' : 'Нет в наличии'}</button>
       <ul class="app-list">${(product.properties || []).map(prop => `<li>${escapeHTML(prop.property_name)}: ${escapeHTML(prop.property_value)}</li>`).join('')}</ul>
     </div></div><div class="app-gallery">${(product.images || []).map(image => `<figure><img src="${escapeHTML(image.image)}" alt="${escapeHTML(image.title)}"><figcaption>${escapeHTML(image.title)}</figcaption></figure>`).join('')}</div>`
 }
@@ -168,10 +236,42 @@ async function renderProduct() {
 function renderCart() {
   $('#cart-content').innerHTML = state.cart.items.length ? `<table class="app-table"><caption>Выбранные услуги</caption><thead><tr><th>Услуга</th><th>Цена</th><th>Количество</th><th>Сумма</th><th>Действия</th></tr></thead><tbody>
     ${state.cart.items.map(item => `<tr><td><a href="product.html?id=${item.product_id}">${escapeHTML(item.name)}</a></td>
-      <td>${money(item.price)}</td><td><input type="number" min="1" max="${maxCartQuantity}" step="1" value="${item.quantity}" data-quantity="${item.product_id}" aria-label="Количество: ${escapeHTML(item.name)}"></td>
+      <td>${money(item.price)}</td><td><input type="number" min="1" max="${Math.max(1, Math.min(maxCartQuantity, item.stock))}" step="1" value="${item.quantity}" data-quantity="${item.product_id}" aria-label="Количество: ${escapeHTML(item.name)}"><p class="app-muted">В наличии: ${item.stock}</p></td>
       <td>${money(item.price * item.quantity)}</td><td><button class="button" type="button" data-remove="${item.product_id}">Удалить</button></td></tr>`).join('')}
     </tbody></table>` : '<p>Ваша корзина пуста.</p>'
   $('#cart-total').textContent = `Итого: ${money(state.cart.total)}`
+  $('#cart-count').textContent = String(state.cart.items.reduce((total, item) => total + item.quantity, 0))
+  $('#buy').disabled = !state.user || !state.cart.items.length || state.cart.items.some(item => item.quantity > item.stock)
+}
+
+async function purchase() {
+  const items = compactCart()
+  if (!state.user) throw new Error('Войдите в личный кабинет')
+  if (!items.length) throw new Error('Ваша корзина пуста')
+  status($('#purchase-status'), 'Покупка...')
+  let result
+  try {
+    result = await api('/api/purchase', 'POST', { items })
+  } catch (error) {
+    status($('#purchase-status'), error.message, true)
+    if (error.status === 409) {
+      await loadCart()
+      renderCart()
+    }
+    if (error.status === 401) {
+      state.user = null
+      renderAccount()
+    }
+    return
+  }
+  state.cart = { items: [], total: 0 }
+  try {
+    cacheCart([])
+  } catch (error) {
+    toast(error.message)
+  }
+  renderCart()
+  status($('#purchase-status'), result.message)
 }
 
 function bindFeedbackForm() {
@@ -200,18 +300,24 @@ function bindFeedbackForm() {
 async function onClick(event) {
   const button = event.target.closest('button')
   if (!button || button.disabled || state.busy) return
-  if (!button.matches('[data-add], [data-remove], #clear-cart')) return
+  if (!button.matches('[data-add], [data-remove], #clear-cart, #logout, #buy')) return
   state.busy = true
   button.disabled = true
   try {
-    if ('add' in button.dataset) await addToCart(Number(button.dataset.add))
+    if ('add' in button.dataset) await addToCart(Number(button.dataset.add), Number(button.dataset.stock))
     if ('remove' in button.dataset) await saveCart(compactCart().filter(item => item.product_id !== Number(button.dataset.remove)))
     if (button.id === 'clear-cart') await saveCart([])
+    if (button.id === 'logout') {
+      await api('/api/auth/logout', 'POST')
+      location.assign('account.html')
+    }
+    if (button.id === 'buy') await purchase()
   } catch (error) {
     toast(error.message)
   } finally {
     state.busy = false
     button.disabled = false
+    if ($('#cart-content')) renderCart()
   }
 }
 
@@ -223,6 +329,8 @@ async function onChange(event) {
   try {
     const quantity = Number(input.value)
     if (!Number.isInteger(quantity) || quantity < 1 || quantity > maxCartQuantity) throw new Error(`Количество должно быть от 1 до ${maxCartQuantity}`)
+    const item = state.cart.items.find(item => item.product_id === Number(input.dataset.quantity))
+    if (quantity > item.stock) throw new Error(`В наличии только ${item.stock} единиц`)
     await saveCart(compactCart().map(item => item.product_id === Number(input.dataset.quantity) ? { ...item, quantity } : item))
   } catch (error) {
     toast(error.message)
@@ -236,10 +344,18 @@ async function onChange(event) {
 async function init() {
   renderNavigation()
   bindFeedbackForm()
+  bindAuthForms()
   document.addEventListener('click', onClick)
   document.addEventListener('change', onChange)
   try {
+    await loadUser()
+    if ($('[data-auth]') && !$('#account-content') && state.user) {
+      location.replace('account.html')
+      return
+    }
+    if ($('#account-content')) renderAccount()
     await loadCart()
+    if ($('#admin-feedback')) await renderAdmin()
     if ($('#search-form')) {
       const categories = await api('/api/categories')
       $('#category-filter').insertAdjacentHTML('beforeend', categories.map(item => `<option value="${item.id}">${escapeHTML(item.name)}</option>`).join(''))
